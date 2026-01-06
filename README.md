@@ -46,19 +46,13 @@ Akkadian transliterations include numerous editorial conventions and scribal ann
 
 ### 2.1 Scribal notation removal
 
-The following elements were removed:
-- line numbers (`1`, `5`, `10`, `1'`, …)  
-- certainty markers (`!`, `?`)  
-- insertions (`<text>`)  
-- damaged sign markers (`˹˺`)  
-- gap indicators (`[x]`, `...`, `<gap>`)
+## 2. Preprocessing
 
-### 2.2 Determinatives
+Akkadian transliterations include editorial conventions (line numbers, damage markers, brackets, etc.) that are not suitable for direct input to neural machine translation models. I implemented a lightweight preprocessing class to normalize the text before sentence splitting and training.
+
+**Note on implementation details.** Parts of the character-mapping table (e.g., Unicode subscripts and diacritics to normalized ASCII-friendly forms) were generated with the help of an LLM from written specifications, mainly to avoid manually typing a long mapping. If you reuse this code for other corpora or transliteration conventions, it is worth double-checking the mappings against your expected standard.
 
 Determinatives such as `{d}` (deity), `{ki}` (place), and `{m}` (person) function as semantic classifiers rather than lexical items. These were removed entirely to reduce sparsity and noise in the training data.
-
-### 2.3 Character normalization
-
 Orthographic variation and special characters were normalized to consistent ASCII-friendly forms:
 - `á → a2`, `š → sz`, `ṣ → s,`, etc.
 
@@ -67,6 +61,90 @@ Orthographic variation and special characters were normalized to consistent ASCI
 Before: 5 a-na {m}A-šùr-ma-lik qí-bí-ma [!]
 After:  a-na A-szur-ma-lik qi2-bi-ma
 ````
+
+```python
+class AkkadianPreprocessor:
+    """Clean and preprocess Akkadian texts.
+       Optional: lexicon-based PN/GN tagging."""
+    
+    def __init__(self, lexicon_df=None):
+        self.lexicon = lexicon_df
+        self.has_lexicon = lexicon_df is not None
+
+        self.char_replacements = {
+            '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+            '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9', '₊': 'x',
+            'á': 'a2', 'à': 'a3', 'é': 'e2', 'è': 'e3',
+            'í': 'i2', 'ì': 'i3', 'ú': 'u2', 'ù': 'u3',
+            'š': 'sz', 'Š': 'SZ', 'ṣ': 's,', 'Ṣ': 'S,',
+            'ṭ': 't,', 'Ṭ': 'T,', 'ḫ': 'h', 'Ḫ': 'H', 'ʾ': "'",
+        }
+
+        if self.has_lexicon:
+            self._build_lexicon_lookups()
+
+    def _build_lexicon_lookups(self):
+        self.form_to_type = {}
+        for _, row in self.lexicon.iterrows():
+            form = str(row.get('form', '')).strip().lower()
+            typ = row.get('type', None)
+            if form and form != 'nan' and pd.notna(typ):
+                self.form_to_type[form] = str(typ).strip()
+
+        self.person_names = {f for f, t in self.form_to_type.items() if t == 'PN'}
+        self.place_names  = {f for f, t in self.form_to_type.items() if t == 'GN'}
+
+    def clean_text(self, text, is_akkadian=True, tag_proper_nouns=False):
+        if pd.isna(text) or str(text).strip() == "":
+            return ""
+
+        text = str(text)
+
+        # remove line numbers
+        text = re.sub(r'(?:^|\n)\s*\d+\'*\s*', ' ', text)
+
+        # remove scribal notations
+        text = text.replace('!', '').replace('?', '').replace('/', ' ')
+        text = re.sub(r'<([^>]+)>', r'\1', text)
+        text = re.sub(r'<<([^>]+)>>', r'\1', text)
+        text = re.sub(r'[˹˺]', '', text)
+        text = re.sub(r'\[([^\]]+)\]', r'\1', text)
+
+        # remove gaps / ellipses entirely
+        text = re.sub(r'<big[_\s]?gap>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'<gap>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\[x\]', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\.\.\.', '', text)
+        text = text.replace('…', '')
+
+        # remove determinatives completely
+        text = re.sub(r'\{[^}]+\}', '', text)
+
+        # normalize characters (akkadian only)
+        if is_akkadian:
+            for old, new in self.char_replacements.items():
+                text = text.replace(old, new)
+
+        # whitespace normalize early so tokenization is stable
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        # optional: tag PN/GN using lexicon
+        if tag_proper_nouns and self.has_lexicon and is_akkadian:
+            words = text.split()
+            out = []
+            for w in words:
+                key = w.replace('-', '').lower()
+                if key in self.person_names:
+                    out.append(f"[PN]{w}[/PN]")
+                elif key in self.place_names:
+                    out.append(f"[GN]{w}[/GN]")
+                else:
+                    out.append(w)
+            text = ' '.join(out)
+
+        return text
+```
+
 
 ---
 

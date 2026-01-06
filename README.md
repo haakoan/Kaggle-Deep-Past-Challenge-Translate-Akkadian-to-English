@@ -1,10 +1,16 @@
 # Akkadian → English Machine Translation  
 **Deep Past Challenge (Kaggle)**
 
-<p align="center">
-  <img src="plots/plot6_akkadian_wordcloud.png" width="420" alt="Akkadian word cloud">
-  <img src="plots/plot7_english_wordcloud.png" width="420" alt="English word cloud">
-</p>
+<table width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="50%" style="padding:0; margin:0;">
+      <img src="plots/plot6_akkadian_wordcloud.png" width="100%" alt="Akkadian word cloud">
+    </td>
+    <td width="50%" style="padding:0; margin:0;">
+      <img src="plots/plot7_english_wordcloud.png" width="100%" alt="English word cloud">
+    </td>
+  </tr>
+</table>
 
 This project investigates neural machine translation of Old Assyrian cuneiform texts from Akkadian transliteration into English. The corpus consists primarily of commercial and administrative documents from ancient Mesopotamian trade networks, dating to approximately 1900–1700 BCE.
 
@@ -18,7 +24,7 @@ The goal is to evaluate how modern sequence-to-sequence transformer models perfo
 
 <table>
   <tr>
-    <td width="360" valign="top">
+    <td width="600" valign="top">
       <img src="plots/plot1_data_sources_pie.png" width="340" alt="Data sources pie chart">
     </td>
     <td valign="top">

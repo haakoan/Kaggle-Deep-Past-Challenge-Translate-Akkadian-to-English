@@ -25,7 +25,7 @@ The goal is to evaluate how modern sequence-to-sequence transformer models perfo
 <table>
   <tr>
     <td width="600" valign="top">
-      <img src="plots/plot1_data_sources_pie.png" width="340" alt="Data sources pie chart">
+      <img src="plots/plot1_data_sources_pie.png" width="590" alt="Data sources pie chart">
     </td>
     <td valign="top">
       Training data was assembled from two sources:

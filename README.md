@@ -16,16 +16,21 @@ The goal is to evaluate how modern sequence-to-sequence transformer models perfo
 
 ### 1.1 Sources
 
-<p align="left">
-  <img src="plots/plot1_data_sources_pie.png" width="260" alt="Data sources pie chart">
-</p>
-
-Training data was assembled from two sources:
-
-1. **Akkademia** — a pre-aligned Akkadian–English parallel corpus  
-2. **Deep Past Kaggle competition data** — official training material
-
-After preprocessing and alignment, the final dataset contains **43,746 sentence-level pairs**.
+<table>
+  <tr>
+    <td width="360" valign="top">
+      <img src="plots/plot1_data_sources_pie.png" width="340" alt="Data sources pie chart">
+    </td>
+    <td valign="top">
+      Training data was assembled from two sources:
+      <ol>
+        <li><b>Akkademia</b> — a pre-aligned Akkadian–English parallel corpus</li>
+        <li><b>Deep Past Kaggle competition data</b> — official training material</li>
+      </ol>
+      After preprocessing and alignment, the final dataset contains <b>43,746</b> sentence-level pairs.
+    </td>
+  </tr>
+</table>
 
 ---
 

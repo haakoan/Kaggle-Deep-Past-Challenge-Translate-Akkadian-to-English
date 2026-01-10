@@ -284,3 +284,6 @@ python train.py \
 
 ![Summary Statistics](plots/plot10_summary_table.png)
 
+1. S. a-na a-wa-tim a-ni-a-tim !up-pu-ti 10 i-li-ku-ni-im a-wa-ti / lâ tzi-u.-ta-ki-ı /
+2. Ennum-Assur, an Nuhsatum: Warum schreibst du mir immer wieder dumme Worte?
+

@@ -196,6 +196,180 @@ High-frequency terms are dominated by prepositions, function words, and administ
 
 ---
 
+
+# Data Augmentation: Expanding the Akkadian Training Corpus
+
+## Overview
+
+The original Kaggle dataset contained approximately 1,500 Akkadian transliteration-translation pairs. To improve model performance, I undertook a substantial data augmentation effort to extract additional training pairs from source material
+provided by the organisers. The data was provided as a large set of OCR-extracted text from academic PDFs.  The data extraction process proved challenging and required multiple iterations of extraction, cleaning, and manual review. T
+
+## Initial Attempts: Rule-Based Extraction
+
+My first approach was to use traditional rule-based methods and standard NLP techniques directly on OCR-extracted text from academic PDFs. This involved:
+
+- Pattern matching for Akkadian transliteration markers (hyphenated syllables, Sumerograms, diacritics like š, ṣ, ṭ, ḫ)
+- Heuristics to identify translation sections
+- Language detection to separate transliteration from translation
+
+**Result:** This approach did not work well. The OCR quality varied significantly across documents, and the formatting of transliterations and translations in academic publications is highly inconsistent. Simple pattern matching couldn't reliably separate the components.
+
+## LLM-Based Extraction
+
+Given the limitations of rule-based approaches, I pivoted to using a Large Language Model for extraction. I set up a cloud-based virtual machine through Vast.ai to run the extraction at scale.
+
+### Model and Configuration
+
+- **Model:** Qwen/Qwen2.5-7B-Instruct
+- **Hardware:** NVIDIA RTX GPUs (initially RTX 5090, later RTX PRO 6000 Blackwell with 96GB VRAM)
+- **Batch processing:** Dynamic batch sizes (48-64) optimized for available VRAM
+
+### Extraction Prompt
+
+```
+SYSTEM PROMPT:
+You are an expert Assyriologist extracting data from scholarly publications.
+
+Your task: Find Akkadian TRANSLITERATIONS and their TRANSLATIONS on the page.
+
+DEFINITIONS:
+- TRANSLITERATION: Akkadian text written in Latin letters with hyphens, diacritics, line numbers.
+  Example: "1. um-ma A-šur-i-dí-ma 2. a-na Pù-šu-ki-in qí-bi-ma"
+- TRANSLATION: A modern language rendering of the Akkadian text (English, German, French).
+  Example: "Thus says Ashur-idi to Pushukin: ..."
+
+NOT translations: Scholarly discussion, historical commentary, footnotes.
+
+OUTPUT FORMAT - Return ONLY this JSON:
+{"status": "...", "confidence": 0.X, "transliteration_raw": "...", "translation_raw": "..."}
+
+STATUS must be one of:
+- "good_pair": Found BOTH transliteration AND its translation
+- "transliteration_only": Found transliteration but NO translation on this page
+- "translation_only": Found translation but NO transliteration on this page  
+- "junk": No transliteration or translation found (bibliography, index, prose)
+
+CRITICAL RULES:
+1. Copy text VERBATIM - do not modify, clean, or translate
+2. Include line numbers if present (e.g., "1. um-ma... 2. a-na...")
+3. If status is "transliteration_only", translation_raw MUST be ""
+4. If status is "translation_only", transliteration_raw MUST be ""
+5. If status is "junk", BOTH fields MUST be ""
+6. Scholarly discussion is NOT a translation - mark as "junk" unless actual transliteration present
+```
+
+### Extraction Results
+
+Processing approximately 217,000 PDF pages over ~31 hours yielded:
+
+| Category | Count | Percentage |
+|----------|-------|------------|
+| Pages processed | ~217,000 | 100% |
+| Candidate pages (with Akkadian indicators) | ~71,000 | 33% |
+| Good pairs extracted | ~7,100 | 10% of candidates |
+| Transliteration only | ~12,200 | 17% of candidates |
+| Junk/rejected | ~49,300 | 70% of candidates |
+
+The high junk rate was expected—most pages in academic publications contain bibliography, indices, commentary, or other non-transliteration content.
+
+## Post-Processing Pipeline
+
+The raw extraction output required substantial cleaning. Many extracted pairs had issues:
+
+- **Mixed content:** Translation text embedded within the transliteration field (common in PDFs where translation follows immediately after transliteration)
+- **Multiple languages:** Translations in French, German, Turkish, Italian (not just English)
+- **OCR artifacts:** Corrupted characters and formatting issues
+- **Duplicates:** The extraction process created multiple copies of some records
+
+### LLM-Based Cleaning Attempt
+
+I first attempted to use the same LLM to clean problematic records—specifically those where translation content appeared mixed into the transliteration field. The prompt asked the model to separate the components.
+
+**Result:** This approach performed poorly. The LLM tended to produce interleaved output (word-by-word glosses) rather than cleanly separated fields. Of approximately 2,700 LLM-cleaned records, only 7 passed subsequent validation checks.
+
+### Rule-Based Cleaning System
+
+I developed a rule-based cleaning pipeline with the following components:
+
+1. **Language detection:** Identifying the language of translations using character patterns and word lists for Turkish, German, French, Italian, Spanish, Dutch, and English
+
+2. **Mixed content detection:** Identifying when translation text appeared in the transliteration field by detecting language-specific markers
+
+3. **Content splitting:** Attempting to find boundaries between transliteration and translation sections
+
+4. **Translation:** Converting non-English translations to English using Helsinki-NLP's MarianMT models
+
+5. **Validation:** Checking for remaining contamination and quality issues
+
+After rule-based processing:
+- **Total pairs:** 5,772
+- **Needing manual review:** 3,011
+
+## Manual Review Interface
+
+To handle the records flagged for review, I built a web interface using Flask that displayed transliteration and translation side-by-side for manual approval and cleaning. This allowed me to:
+
+- Approve clean pairs
+- Edit and correct minor issues
+- Reject pairs with unfixable problems
+- Identify patterns in problematic extractions
+
+I manually reviewed all 3,011 flagged pairs through this interface.
+
+## Final Cleaning
+
+Even after manual review, some issues remained. A final automated check identified records with residual language contamination:
+
+**Source (transliteration) contamination:**
+| Language | Count |
+|----------|-------|
+| Italian | 94 |
+| French | 77 |
+| German | 43 |
+| Turkish | 17 |
+
+**Target (translation) contamination:**
+| Language | Count |
+|----------|-------|
+| French | 6 |
+| Italian | 3 |
+| German | 1 |
+| Turkish | 1 |
+
+These contaminated records were removed from the final dataset.
+
+## Final Results
+
+| Dataset | Pairs |
+|---------|-------|
+| Original Kaggle data | ~1,500 |
+| New extracted pairs | 4,405 |
+| **Total training data** | **~5,900** |
+
+## Reflections
+
+The extraction pipeline efficiency was admittedly poor—starting from ~7,100 extracted pairs and ending with 4,405 clean pairs represents significant loss. Several factors contributed:
+
+1. **Aggressive filtering:** I opted to be strict rather than risk including junk data that could harm model training
+2. **Mixed content challenges:** Academic PDFs frequently place translations immediately after transliterations with no clear separator
+3. **Multilingual complexity:** The corpus includes scholarship in multiple languages, complicating both extraction and cleaning
+4. **OCR quality:** Variable scan quality across different publications
+
+Despite these challenges, the augmentation effort more than doubled the available training data. The new pairs come from diverse sources across Assyriology scholarship, which should improve model generalization.
+
+Future improvements could include:
+- Better extraction prompts with few-shot examples
+- Improved boundary detection for mixed content
+- Earlier deduplication in the pipeline
+- More sophisticated language-aware splitting
+
+For this project, I prioritized data quality over quantity, accepting that some valid pairs were lost in exchange for higher confidence in the retained data.
+
+---
+
+
+
+
 ## 5. Model
 
 The translation model is based on **NLLB-200 (distilled 600M)**

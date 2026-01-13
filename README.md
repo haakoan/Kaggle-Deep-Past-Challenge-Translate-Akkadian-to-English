@@ -15,6 +15,15 @@
 This project investigates neural machine translation of Old Assyrian cuneiform texts from Akkadian transliteration into English.
 The goal is to evaluate how modern sequence-to-sequence transformer models perform on carefully preprocessed and sentence-aligned Akkadian–English parallel data.
 
+
+
+---
+##  Training Log
+ - NLLB-200 + Akkademia (out-of-period extra data): Adding a large external Akkademia-derived dataset (from a different historical period than the Kaggle corpus) improved leaderboard performance to 23.2, suggesting the extra data helped the model’s general translation robustness despite the domain mismatch. This differs from what others have reported.
+ - ByT5-base + extracted extra data: Using ByT5 with additional extracted training pairs produced very strong validation performance (~35), but only 19.2 on the 
+ leaderboard, indicating the added data or setup improved in-sample metrics while not transferring well to the hidden test distribution.
+- ByT5-Small + Akkademia + extracted extra data (ongoing):
+
 ---
 
 ## 1. Data
@@ -148,12 +157,6 @@ This process increased the effective training data from approximately 1,500 docu
 
 ### 4.1 Length distributions
 
-![Word Length Distribution](plots/plot3_word_length_histogram.png)
-
-English translations are typically longer than Akkadian transliterations, with a median length ratio of **1.58:1**.
-
-![Translation Length Ratio](plots/plot5_length_ratio.png)
-
 **Summary statistics**
 
 * Avg. Akkadian words: **13.1** per sentence
@@ -163,20 +166,12 @@ English translations are typically longer than Akkadian transliterations, with a
 
 ### 4.2 Vocabulary
 
-![Vocabulary Comparison](plots/plot8_vocabulary_comparison.png)
-
 * Akkadian vocabulary size: **74,114** unique tokens
 * English vocabulary size: **46,588** unique tokens
 * Vocabulary diversity (Akkadian): **0.129**
 * Vocabulary diversity (English): **0.049**
 
 The higher diversity in Akkadian reflects morphological richness and transliteration variability.
-
-### 4.3 Frequent Akkadian tokens
-
-![Top Akkadian Words](plots/plot9_top_akkadian_words.png)
-
-High-frequency terms are dominated by prepositions, function words, and administrative vocabulary, consistent with the commercial nature of the corpus.
 
 ---
 
@@ -352,12 +347,6 @@ Future improvements could include:
  -NLLB-200 (distilled 600M) (facebook/nllb-200-distilled-600M) is a multilingual seq2seq translation model pretrained on many language pairs, designed to transfer strong cross-lingual representations to low-resource translation. It uses subword tokenization and is optimized for standard machine translation settings.
 - ByT5 is a T5-style seq2seq model that operates at the byte/character level instead of subwords. This makes it more robust to unusual symbols, diacritics, and inconsistent formatting common in transliteration-heavy inputs like Akkadian.
 
----
-## 6. Training
- - NLLB-200 + Akkademia (out-of-period extra data): Adding a large external Akkademia-derived dataset (from a different historical period than the Kaggle corpus) improved leaderboard performance to 23.2, suggesting the extra data helped the model’s general translation robustness despite the domain mismatch. This differs from what others have reported.
- - ByT5-base + extracted extra data: Using ByT5 with additional extracted training pairs produced very strong validation performance (~35), but only 19.2 on the 
- leaderboard, indicating the added data or setup improved in-sample metrics while not transferring well to the hidden test distribution.
-- ByT5-Small + Akkademia + extracted extra data (ongoing):
 
 
 

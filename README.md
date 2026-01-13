@@ -12,8 +12,7 @@
   </tr>
 </table>
 
-This project investigates neural machine translation of Old Assyrian cuneiform texts from Akkadian transliteration into English. The corpus consists primarily of commercial and administrative documents from ancient Mesopotamian trade networks, dating to approximately 1900–1700 BCE.
-
+This project investigates neural machine translation of Old Assyrian cuneiform texts from Akkadian transliteration into English.
 The goal is to evaluate how modern sequence-to-sequence transformer models perform on carefully preprocessed and sentence-aligned Akkadian–English parallel data.
 
 ---
@@ -21,23 +20,8 @@ The goal is to evaluate how modern sequence-to-sequence transformer models perfo
 ## 1. Data
 
 ### 1.1 Sources
-
-<table>
-  <tr>
-    <td width="600" valign="top">
-      <img src="plots/plot1_data_sources_pie.png" width="590" alt="Data sources pie chart">
-    </td>
-    <td valign="top">
-      Training data was assembled from two sources:
-      <ol>
-        <li><b>Akkademia</b> — a pre-aligned Akkadian–English parallel corpus</li>
-        <li><b>Deep Past Kaggle competition data</b> — official training material</li>
-      </ol>
-      After preprocessing and alignment, the final dataset contains <b>43,746</b> sentence-level pairs.
-    </td>
-  </tr>
-</table>
-
+- Deep Past Kaggle competition data official training material
+- Akkademia: a pre-aligned Akkadian–English parallel corpus. Not old Akkadian. 
 ---
 
 ## 2. Preprocessing
@@ -197,7 +181,7 @@ High-frequency terms are dominated by prepositions, function words, and administ
 ---
 
 
-# Data Augmentation: Expanding the Akkadian Training Corpus
+# Data Augmentation: Expanding the Akkadian Training Corpus (work in progress)
 
 ## Overview
 
@@ -221,8 +205,6 @@ Given the limitations of rule-based approaches, I pivoted to using a Large Langu
 ### Model and Configuration
 
 - **Model:** Qwen/Qwen2.5-7B-Instruct
-- **Hardware:** NVIDIA RTX GPUs (initially RTX 5090, later RTX PRO 6000 Blackwell with 96GB VRAM)
-- **Batch processing:** Dynamic batch sizes (48-64) optimized for available VRAM
 
 ### Extraction Prompt
 

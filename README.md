@@ -196,11 +196,12 @@ My first approach was to use traditional rule-based methods and standard NLP tec
 - Heuristics to identify translation sections
 - Language detection to separate transliteration from translation
 
-**Result:** This approach did not work well. The OCR quality varied significantly across documents, and the formatting of transliterations and translations in academic publications is highly inconsistent. Simple pattern matching couldn't reliably separate the components.
+**Result:** This approach did not work well. Simple pattern matching couldn't reliably separate the components.
 
 ## LLM-Based Extraction
 
-Given the limitations of rule-based approaches, I pivoted to using a Large Language Model for extraction. I set up a cloud-based virtual machine through Vast.ai to run the extraction at scale.
+Given the limitations of rule-based approaches, I wanted to test using a Large Language Model for extraction. 
+I set up a cloud-based virtual machine to run the extraction at scale.
 
 ### Model and Configuration
 
@@ -265,22 +266,20 @@ The raw extraction output required substantial cleaning. Many extracted pairs ha
 
 ### LLM-Based Cleaning Attempt
 
-I first attempted to use the same LLM to clean problematic records—specifically those where translation content appeared mixed into the transliteration field. The prompt asked the model to separate the components.
+I first attempted to use the same LLM to clean problematic records—specifically those where translation content appeared mixed into the transliteration field. 
+The prompt asked the model to separate the components.
 
-**Result:** This approach performed poorly. The LLM tended to produce interleaved output (word-by-word glosses) rather than cleanly separated fields. Of approximately 2,700 LLM-cleaned records, only 7 passed subsequent validation checks.
+**Result:** This approach performed poorly. The LLM tended to produce interleaved output (word-by-word glosses) rather than cleanly separated fields. 
+Of approximately 2,700 LLM-cleaned records, only 7 passed subsequent validation checks.
 
 ### Rule-Based Cleaning System
 
 I developed a rule-based cleaning pipeline with the following components:
 
 1. **Language detection:** Identifying the language of translations using character patterns and word lists for Turkish, German, French, Italian, Spanish, Dutch, and English
-
 2. **Mixed content detection:** Identifying when translation text appeared in the transliteration field by detecting language-specific markers
-
 3. **Content splitting:** Attempting to find boundaries between transliteration and translation sections
-
 4. **Translation:** Converting non-English translations to English using Helsinki-NLP's MarianMT models
-
 5. **Validation:** Checking for remaining contamination and quality issues
 
 After rule-based processing:
@@ -289,8 +288,8 @@ After rule-based processing:
 
 ## Manual Review Interface
 
-To handle the records flagged for review, I built a web interface using Flask that displayed transliteration and translation side-by-side for manual approval and cleaning. This allowed me to:
-
+To handle the records flagged for review, I built a web interface using Flask that displayed transliteration and translation side-by-side for manual approval and cleaning. 
+This allowed me to:
 - Approve clean pairs
 - Edit and correct minor issues
 - Reject pairs with unfixable problems
@@ -328,8 +327,6 @@ These contaminated records were removed from the final dataset.
 | New extracted pairs | 4,405 |
 | **Total training data** | **~5,900** |
 
-## Reflections
-
 The extraction pipeline efficiency was admittedly poor—starting from ~7,100 extracted pairs and ending with 4,405 clean pairs represents significant loss. Several factors contributed:
 
 1. **Aggressive filtering:** I opted to be strict rather than risk including junk data that could harm model training
@@ -337,7 +334,8 @@ The extraction pipeline efficiency was admittedly poor—starting from ~7,100 ex
 3. **Multilingual complexity:** The corpus includes scholarship in multiple languages, complicating both extraction and cleaning
 4. **OCR quality:** Variable scan quality across different publications
 
-Despite these challenges, the augmentation effort more than doubled the available training data. The new pairs come from diverse sources across Assyriology scholarship, which should improve model generalization.
+Despite these challenges, the augmentation effort more than doubled the available training data. However, at this stage, it is not clear that the
+quality of the data is good enough to improve traning.
 
 Future improvements could include:
 - Better extraction prompts with few-shot examples
@@ -345,21 +343,22 @@ Future improvements could include:
 - Earlier deduplication in the pipeline
 - More sophisticated language-aware splitting
 
-For this project, I prioritized data quality over quantity, accepting that some valid pairs were lost in exchange for higher confidence in the retained data.
-
+  
 ---
-
-
 
 
 ## 5. Model
 
-The translation model is based on **NLLB-200 (distilled 600M)**
-(`facebook/nllb-200-distilled-600M`).
-
-Initial experiments with a smaller model showed early performance saturation. The 600M-parameter NLLB model provided sufficient capacity and strong multilingual representations to adapt to the domain-specific characteristics of Akkadian transliteration.
+ -NLLB-200 (distilled 600M) (facebook/nllb-200-distilled-600M) is a multilingual seq2seq translation model pretrained on many language pairs, designed to transfer strong cross-lingual representations to low-resource translation. It uses subword tokenization and is optimized for standard machine translation settings.
+- ByT5 is a T5-style seq2seq model that operates at the byte/character level instead of subwords. This makes it more robust to unusual symbols, diacritics, and inconsistent formatting common in transliteration-heavy inputs like Akkadian.
 
 ---
+## 6. Training
+ - NLLB-200 + Akkademia (out-of-period extra data): Adding a large external Akkademia-derived dataset (from a different historical period than the Kaggle corpus) improved leaderboard performance to 23.2, suggesting the extra data helped the model’s general translation robustness despite the domain mismatch. This differs from what others have reported.
+ - ByT5-base + extracted extra data: Using ByT5 with additional extracted training pairs produced very strong validation performance (~35), but only 19.2 on the 
+ leaderboard, indicating the added data or setup improved in-sample metrics while not transferring well to the hidden test distribution.
+- ByT5-Small + Akkademia + extracted extra data (ongoing):
+
 
 
 

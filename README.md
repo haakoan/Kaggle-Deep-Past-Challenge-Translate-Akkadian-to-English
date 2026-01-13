@@ -1,4 +1,4 @@
-# Akkadian → English Machine Translation  
+# Akkadian → English Machine Translation  (Work in progress/progress log)
 **Deep Past Challenge (Kaggle)**
 
 <table width="100%" cellspacing="0" cellpadding="0">

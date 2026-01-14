@@ -14,8 +14,16 @@
 
 This project investigates neural machine translation of Old Assyrian cuneiform texts from Akkadian transliteration into English.
 The goal is to evaluate how modern sequence-to-sequence transformer models perform on carefully preprocessed and sentence-aligned Akkadian–English parallel data.
+Current status: I’m currently 182nd on the public leaderboard (33.4). At this point, further progress seems to depend heavily on time-consuming data cleaning and alignment work,
+which I don’t have the time to prioritize right now, so it’s unclear if I’ll keep pushing this further.
 
+This project gave practical experience adapting translation models to a low-resource, 
+transliteration-heavy domain. Working with byte-level models (ByT5) and different fine-tuning regimes made it clear how strongly preprocessing, 
+domain shift, and decoding choices influence BLEU/chrF performance. It also reinforced that some of the hardest bottlenecks are data- and convention-driven, and are difficult to fully resolve without domain expertise.
 
+# Code
+byt5_two_stage_training: Trains a ByT5 model in two phases—first on a broader Akkadian dataset, then fine-tunes on the competition (Old Assyrian).
+submission_notebook: Loads a selected checkpoint and runs inference on the test set using tuned decoding parameters, then formats and writes the Kaggle submission file.
 
 ---
 ##  Training Log
@@ -62,7 +70,7 @@ Orthographic variation and special characters were normalized to consistent ASCI
 Before: 5 a-na {m}A-šùr-ma-lik qí-bí-ma [!]
 After:  a-na A-szur-ma-lik qi2-bi-ma
 ````
-
+When traning NLLB-200, I used the following preprocessing
 ```python
 class AkkadianPreprocessor:
     """Clean and preprocess Akkadian texts.
@@ -144,6 +152,84 @@ class AkkadianPreprocessor:
             text = ' '.join(out)
 
         return text
+```
+For traning ByT5 base simpler preprocessing was used:
+```python
+ASCII_TO_DIACRITIC = {
+    "sz": "š", "SZ": "Š", "Sz": "Š", "sh": "š", "SH": "Š", "Sh": "Š",
+    "s,": "ṣ", "S,": "Ṣ", "t,": "ṭ", "T,": "Ṭ", "z,": "ẓ", "Z,": "Ẓ",
+    ".s": "ṣ", ".S": "Ṣ", ".t": "ṭ", ".T": "Ṭ", ".z": "ẓ", ".Z": "Ẓ",
+    "h,": "ḫ", "H,": "Ḫ", ".h": "ḫ", ".H": "Ḫ", "hh": "ḫ", "HH": "Ḫ",
+    "s2": "š", "S2": "Š", "s3": "ś", "S3": "Ś",
+    "a2": "á", "a3": "à", "e2": "é", "e3": "è",
+    "i2": "í", "i3": "ì", "u2": "ú", "u3": "ù",
+}
+
+SUBSCRIPTS = {'₀':'0', '₁':'1', '₂':'2', '₃':'3', '₄':'4',
+              '₅':'5', '₆':'6', '₇':'7', '₈':'8', '₉':'9', 'ₓ':'x'}
+
+def normalize_ascii(text):
+    if not text:
+        return text
+    for k, v in sorted(ASCII_TO_DIACRITIC.items(), key=lambda x: -len(x[0])):
+        text = text.replace(k, v)
+    for k, v in SUBSCRIPTS.items():
+        text = text.replace(k, v)
+    return text
+
+def normalize_gaps(text):
+    if not text:
+        return text
+    tokens = text.split()
+    result = []
+    i = 0
+    while i < len(tokens):
+        if tokens[i].lower() == "x":
+            count = 1
+            while i + count < len(tokens) and tokens[i + count].lower() == "x":
+                count += 1
+            result.append("<gap>" if count == 1 else "<big_gap>")
+            i += count
+        else:
+            t = tokens[i]
+            if t.lower().startswith("x-"):
+                t = "<gap>" + t[1:]
+            elif t.lower().endswith("-x"):
+                t = t[:-1] + "-<gap>"
+            result.append(t)
+            i += 1
+    text = " ".join(result)
+    text = re.sub(r"(<gap>\s*){2,}", "<big_gap> ", text)
+    text = re.sub(r"\.\.\.+", " <big_gap> ", text)
+    return text.strip()
+
+def tag_names(text):
+    if not USE_LEXICON or not text:
+        return text
+    words = text.split()
+    result = []
+    for w in words:
+        key = w.replace("-", "").lower()
+        if key in PN_NAMES:
+            result.append(f"[PN]{w}[/PN]")
+        elif key in GN_NAMES:
+            result.append(f"[GN]{w}[/GN]")
+        else:
+            result.append(w)
+    return " ".join(result)
+
+def clean_akkadian(text):
+    if pd.isna(text) or not str(text).strip():
+        return ""
+    text = str(text)
+    text = text.replace("!", "").replace("?", "")
+    text = re.sub(r"[˹˺]", "", text)
+    text = re.sub(r"\[([^\]]+)\]", r"\1", text)
+    text = normalize_ascii(text)
+    text = normalize_gaps(text)
+    text = tag_names(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 ```
 
 

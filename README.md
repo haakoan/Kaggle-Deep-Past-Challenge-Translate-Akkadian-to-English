@@ -19,19 +19,27 @@ The goal is to evaluate how modern sequence-to-sequence transformer models perfo
 
 ---
 ##  Training Log
- - NLLB-200 + Akkademia (out-of-period extra data): Adding a large external Akkademia-derived dataset (from a different historical period than the Kaggle corpus) improved leaderboard performance to 23.2, suggesting the extra data helped the model’s general translation robustness despite the domain mismatch. This differs from what others have reported.
- - ByT5-base + extracted extra data: Using ByT5 with additional extracted training pairs produced very strong validation performance (~35), but only 19.2 on the 
- leaderboard, indicating the added data or setup improved in-sample metrics while not transferring well to the hidden test distribution.
-- ByT5-Small + Akkademia + extracted extra data (ongoing):
-
+ - NLLB-200 + Akkademia (out-of-period extra data): Adding a large external Akkademia-derived dataset (from a different historical period than the Kaggle corpus) leaderboard performance of 23.2, 
+ the extra data helped the model’s general translation robustness despite the domain mismatch. This differs from what others have reported.
+- ByT5-Small + Akkademia + extracted extra data: Combining a smaller byte-level T5 model with Akkademia and the host-provided extracted pairs gave solid local gains, a leaderboard score of around 30.
+- ByT5-Small fine-tuned on competition training data (Old Assyrian only): Starting from the general Akkadian checkpoint and continuing training only on the competition (Old Assyrian) data with a lower learning rate produced a clear leaderboard jump.
 ---
 
 ## 1. Data
 
 ### 1.1 Sources
 - Deep Past Kaggle competition data official training material
-- Akkademia: a pre-aligned Akkadian–English parallel corpus. Not old Akkadian. 
+- Akkademia: a pre-aligned Akkadian–English parallel corpus. Not old Akkadian.
+- Extracted pairs: additional Akkadian transliteration–translation snippets automatically extracted from digitized sources, provided by the competition hosts and used as supplemental training data (quality varies).
+
 ---
+### 1.2 Data quality
+During development, it became clear that the training data contains several sources of noise and inconsistency that are difficult to fully resolve from a machine-learning perspective alone. 
+Community discussions in the competition indicate that a non-trivial fraction of the training examples may be partially misaligned or truncated.
+While filtering or cropping can reduce some of these effects, identifying and correcting such issues reliably often requires domain-specific knowledge.
+
+More broadly, the dataset reflects multiple scholarly transliteration conventions and editorial practices, including variation in diacritics, orthography, and annotation. 
+Resolving these ambiguities robustly is, agin, primarily a domain-expert task.
 
 ## 2. Preprocessing
 
@@ -138,18 +146,6 @@ class AkkadianPreprocessor:
         return text
 ```
 
-
----
-
-## 3. Sentence-level alignment
-
-The evaluation format of the competition is sentence-based, whereas part of the training data is document-level. Automatic sentence splitting and alignment was performed using:
-
-* line structure in Akkadian transliterations
-* punctuation-based splitting for English
-* retention only of cases with clean 1-to-1 correspondence
-
-This process increased the effective training data from approximately 1,500 documents to **43,746 aligned sentence pairs**.
 
 ---
 
@@ -347,15 +343,6 @@ Future improvements could include:
  -NLLB-200 (distilled 600M) (facebook/nllb-200-distilled-600M) is a multilingual seq2seq translation model pretrained on many language pairs, designed to transfer strong cross-lingual representations to low-resource translation. It uses subword tokenization and is optimized for standard machine translation settings.
 - ByT5 is a T5-style seq2seq model that operates at the byte/character level instead of subwords. This makes it more robust to unusual symbols, diacritics, and inconsistent formatting common in transliteration-heavy inputs like Akkadian.
 
-
-
-
-
----
-
-## Dataset summary
-
-![Summary Statistics](plots/plot10_summary_table.png)
 
 1. S. a-na a-wa-tim a-ni-a-tim !up-pu-ti 10 i-li-ku-ni-im a-wa-ti / lâ tzi-u.-ta-ki-ı /
 2. Ennum-Assur, an Nuhsatum: Warum schreibst du mir immer wieder dumme Worte?

@@ -20,10 +20,11 @@ which I don’t have the time to prioritize right now, so it’s unclear if I’
 This project gave practical experience adapting translation models to a low-resource, 
 transliteration-heavy domain. Working with byte-level models (ByT5) and different fine-tuning regimes made it clear how strongly preprocessing, 
 domain shift, and decoding choices influence BLEU/chrF performance. It also reinforced that some of the hardest bottlenecks are data- and convention-driven, and are difficult to fully resolve without domain expertise.
+---
 
 # Code
-byt5_two_stage_training: Trains a ByT5 model in two phases—first on a broader Akkadian dataset, then fine-tunes on the competition (Old Assyrian).
-submission_notebook: Loads a selected checkpoint and runs inference on the test set using tuned decoding parameters, then formats and writes the Kaggle submission file.
+- byt5_two_stage_training: Trains a ByT5 model in two phases—first on a broader Akkadian dataset, then fine-tunes on the competition (Old Assyrian).
+- submission_notebook: Loads a selected checkpoint and runs inference on the test set using tuned decoding parameters, then formats and writes the Kaggle submission file.
 
 ---
 ##  Training Log
